@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mechanic-On-Wheels - TESDA Prototype</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Continuous Gear Rotations */
+        @keyframes spin-cw {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes spin-ccw {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(-360deg); }
+        }
+        .gear-rotate-cw {
+            animation: spin-cw 12s linear infinite;
+            transform-origin: center;
+        }
+        .gear-rotate-ccw {
+            animation: spin-ccw 12s linear infinite;
+            transform-origin: center;
+        }
+        .wheel-rotate {
+            animation: spin-cw 4s linear infinite;
+            transform-origin: center;
+        }
+        .hover-spin:hover {
+            animation: spin-cw 2s linear infinite;
+        }
+
+        /* Custom scrollbar for inner screens */
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.25);
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 h-full flex flex-col items-center justify-center p-0 sm:p-4 overflow-x-hidden">
+
+    <!-- Top Demo Control Bar for TESDA proposal presentation -->
+    <div class="mb-3 flex flex-wrap items-center justify-center gap-2 z-50 text-xs bg-slate-900 border border-slate-700/60 px-4 py-2 rounded-2xl shadow-lg">
+        <span class="text-blue-400 font-bold uppercase tracking-wider text-[10px]">TESDA Demo Quick-Switch:</span>
+        <button onclick="switchScreen('welcome')" class="bg-blue-800 hover:bg-blue-700 text-white px-2.5 py-1 rounded-lg font-medium transition cursor-pointer">Welcome</button>
+        <button onclick="goToLogin('motorist')" class="bg-emerald-700 hover:bg-emerald-600 text-white px-2.5 py-1 rounded-lg font-medium transition cursor-pointer">Login (Motorist)</button>
+        <button onclick="goToLogin('mechanic')" class="bg-amber-700 hover:bg-amber-600 text-white px-2.5 py-1 rounded-lg font-medium transition cursor-pointer">Login (Mechanic)</button>
+        <button onclick="switchScreen('motorist_dashboard')" class="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded-lg font-medium transition cursor-pointer">Motorist App</button>
+        <button onclick="switchScreen('mechanic_dashboard')" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1 rounded-lg font-medium transition cursor-pointer">Mechanic App</button>
+    </div>
+
+    <!-- Mobile Device Container Mockup -->
+    <div id="app-container" class="w-full sm:max-w-[420px] h-full sm:h-[860px] sm:rounded-[42px] bg-[#0038A8] border-0 sm:border-[8px] sm:border-slate-800 shadow-2xl flex flex-col relative overflow-hidden transition-all duration-300">
+        
+        <!-- Mobile Status Bar Simulation -->
+        <div class="w-full bg-[#002673] text-white text-xs px-6 py-2 flex justify-between items-center select-none z-50">
+            <span id="current-time" class="font-semibold">9:41</span>
+            <div class="flex items-center space-x-2 text-[10px]">
+                <span>5G</span>
+                <div class="w-5 h-2.5 border border-white rounded-sm p-0.5 flex items-center">
+                    <div class="h-full w-3/4 bg-white rounded-2xs"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dynamic Content Area -->
+        <div id="view-root" class="flex-1 flex flex-col relative overflow-y-auto">
+            <!-- Content dynamically rendered via JavaScript -->
+        </div>
+
+    </div>
+
+    <!-- Custom Notification Modal -->
+    <div id="custom-modal" class="fixed inset-0 bg-black/75 backdrop-blur-xs z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-[#002266] border border-blue-400/30 rounded-3xl p-6 max-w-xs w-full text-center shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div id="modal-icon" class="text-4xl mb-3">🚗</div>
+            <h3 id="modal-title" class="text-lg font-bold text-white mb-2">Notice</h3>
+            <p id="modal-message" class="text-xs text-slate-200 mb-6 leading-relaxed">Message content...</p>
+            <button onclick="closeModal()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 px-4 rounded-xl transition shadow-lg shadow-blue-600/40 cursor-pointer">
+                Okay
+            </button>
+        </div>
+    </div>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            let minutes = now.getMinutes();
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            document.getElementById('current-time').innerText = `${hours}:${minutes}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function showModal(title, message, icon = '🚗') {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            document.getElementById('modal-icon').innerText = icon;
+            document.getElementById('custom-modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('custom-modal').classList.add('hidden');
+        }
+
+        let state = {
+            currentScreen: 'welcome',
+            loginRole: 'motorist',
+            usernameInput: '',
+            passwordInput: '',
+            bookingStatus: 'idle',
+            locationText: 'TESDA Complex, East Service Rd, Taguig',
+            problemText: 'Engine overheating & flat tire',
+            mechanicInfo: { name: 'Juan "Kambyo" Santos', rating: '4.9 ★', distance: '1.2 km away' },
+            showGearMenu: false
+        };
+
+        function switchScreen(screenName) {
+            state.currentScreen = screenName;
+            state.showGearMenu = false;
+            render();
+        }
+
+        // --- REAL SOLID MECHANICAL GEAR SVG ---
+        const gearSvgPath = `
+            <svg viewBox="0 0 100 100" class="w-full h-full fill-slate-200 drop-shadow">
+                <path d="M60.5 12.5 L64 22.5 C68 24 71.5 26.5 74.5 29.5 L84 26 L91 38 L83 45.5 C83.5 48 83.5 50 83.5 52 C83.5 54 83.5 56 83 58.5 L91 66 L84 78 L74.5 74.5 C71.5 77.5 68 80 64 81.5 L60.5 91.5 L45.5 91.5 L42 81.5 C38 80 34.5 77.5 31.5 74.5 L22 78 L15 66 L23 58.5 C22.5 56 22.5 54 22.5 52 C22.5 50 22.5 48 23 45.5 L15 38 L22 26 L31.5 29.5 C34.5 26.5 38 24 42 22.5 L45.5 12.5 Z" />
+                <circle cx="53" cy="52" r="18" fill="#0038A8" />
+                <circle cx="53" cy="52" r="7" fill="#cbd5e1" />
+            </svg>
+        `;
+
+        function renderMathematicalGearsCluster() {
+            return `
+                <div class="relative w-36 h-36 select-none pointer-events-none">
+                    <!-- Top Right Gear (CW) -->
+                    <div class="absolute top-0 right-0 w-20 h-20 gear-rotate-cw opacity-95">
+                        ${gearSvgPath}
+                    </div>
+                    <!-- Left Gear (CCW) -->
+                    <div class="absolute top-6 left-0 w-16 h-16 gear-rotate-ccw opacity-95">
+                        ${gearSvgPath}
+                    </div>
+                    <!-- Bottom Center Gear (CW) -->
+                    <div class="absolute bottom-0 right-4 w-18 h-18 gear-rotate-cw opacity-95">
+                        ${gearSvgPath}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Custom Logo Header with fallback
+        function renderLogoHeader() {
+            return `
+                <div class="w-full flex justify-center items-center my-2 select-none px-4">
+                    <img src="Asset/MOW-Logo-1.png" alt="Mechanic On Wheels Logo" class="max-h-32 object-contain drop-shadow-xl" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'bg-blue-900 border-2 border-amber-400 p-4 rounded-2xl text-center shadow-lg\'><h2 class=\'text-lg font-black text-white tracking-wider\'>MECHANIC <span class=\'text-amber-400\'>ON</span> WHEELS</h2><p class=\'text-[10px] text-blue-200 mt-0.5\'>By Group 5 - Sasa, Somblingo, Suaso, Sy, Torres</p></div>';">
+                </div>
+            `;
+        }
+
+        // Red Car Header Graphic
+        function renderRedCarHeader(titleText) {
+            return `
+                <div class="relative flex items-center justify-center my-2 select-none w-full">
+                    <div class="relative bg-red-500 rounded-3xl p-3 shadow-xl border-2 border-red-400 flex flex-col items-center justify-center min-w-[200px] min-h-[65px]">
+                        <div class="w-full flex justify-between px-3 mb-1">
+                            <div class="w-5 h-2.5 bg-amber-400 rounded-full shadow"></div>
+                            <div class="w-5 h-2.5 bg-amber-400 rounded-full shadow"></div>
+                        </div>
+                        <span class="text-white font-extrabold text-base tracking-wide text-center drop-shadow">${titleText}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Spinning Reference Wheels at Bottom
+        function renderBottomSpinningWheels() {
+            return `
+                <div class="mt-auto pt-2 pb-3 flex justify-between px-10 w-full select-none">
+                    <div class="w-11 h-11 rounded-full border-4 border-slate-700 bg-slate-900 flex items-center justify-center wheel-rotate shadow-xl">
+                        <div class="w-4 h-4 rounded-full border-2 border-slate-400 bg-slate-800 flex items-center justify-center">
+                            <div class="w-1.5 h-1.5 bg-slate-300 rounded-full"></div>
+                        </div>
+                    </div>
+                    <div class="w-11 h-11 rounded-full border-4 border-slate-700 bg-slate-900 flex items-center justify-center wheel-rotate shadow-xl">
+                        <div class="w-4 h-4 rounded-full border-2 border-slate-400 bg-slate-800 flex items-center justify-center">
+                            <div class="w-1.5 h-1.5 bg-slate-300 rounded-full"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderBackButton(onClickFn) {
+            return `
+                <button onclick="${onClickFn}" class="w-9 h-9 bg-blue-800/80 hover:bg-blue-700 rounded-xl flex items-center justify-center text-white shadow-md border border-blue-400/30 cursor-pointer transition transform active:scale-95">
+                    <span class="text-sm font-bold">⬅</span>
+                </button>
+            `;
+        }
+
+        function render() {
+            const root = document.getElementById('view-root');
+            root.innerHTML = '';
+
+            switch(state.currentScreen) {
+                case 'welcome': root.innerHTML = renderWelcomeScreen(); break;
+                case 'login': root.innerHTML = renderLoginScreen(); break;
+                case 'register_motorist_1': root.innerHTML = renderMotoristReg1(); break;
+                case 'register_motorist_2': root.innerHTML = renderMotoristReg2(); break;
+                case 'register_mech_1': root.innerHTML = renderMechReg1(); break;
+                case 'register_mech_2': root.innerHTML = renderMechReg2(); break;
+                case 'motorist_dashboard': root.innerHTML = renderMotoristDashboard(); break;
+                case 'mechanic_dashboard': root.innerHTML = renderMechanicDashboard(); break;
+            }
+        }
+
+        // --- 1. WELCOME SCREEN ---
+        function renderWelcomeScreen() {
+            return `
+                <div class="flex-1 flex flex-col p-4 relative justify-between h-full bg-[#0038A8]">
+                    <div class="flex justify-end pr-2 pt-1">
+                        ${renderMathematicalGearsCluster()}
+                    </div>
+                    <div class="w-full bg-[#002B82] border border-blue-400/30 rounded-3xl p-5 shadow-2xl flex flex-col items-center text-center my-auto">
+                        ${renderLogoHeader()}
+                        ${renderRedCarHeader("Log in as")}
+                        <div class="w-full space-y-3 mt-3 mb-2">
+                            <button onclick="goToLogin('motorist')" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3 px-4 rounded-xl shadow-lg cursor-pointer text-sm">Motorists</button>
+                            <button onclick="goToLogin('mechanic')" class="w-full bg-[#FF8C38] hover:bg-amber-500 text-slate-950 font-extrabold py-3 px-4 rounded-xl shadow-lg cursor-pointer text-sm">Mechanic</button>
+                        </div>
+                        <div class="text-xs text-slate-200 mt-2">
+                            <span class="block text-slate-300 font-medium mb-1">Create Account As</span>
+                            <div class="flex justify-center items-center space-x-3 font-bold text-blue-200">
+                                <button onclick="startRegister('motorist')" class="hover:underline cursor-pointer">Motorists</button>
+                                <span class="text-slate-400">|</span>
+                                <button onclick="startRegister('mechanic')" class="hover:underline cursor-pointer">Mechanic</button>
+                            </div>
+                        </div>
+                    </div>
+                    ${renderBottomSpinningWheels()}
+                </div>
+            `;
+        }
+
+        // --- 2. LOGIN SCREEN ---
+        function renderLoginScreen() {
+            const isMotorist = state.loginRole === 'motorist';
+            const defaultUser = isMotorist ? 'Group5' : 'Driving-Mech';
+            const defaultPass = 'TESDANC2';
+
+            return `
+                <div class="flex-1 flex flex-col p-4 relative justify-between h-full bg-[#0038A8]">
+                    <div class="flex justify-between items-start pt-1">
+                        ${renderBackButton("goToWelcome()")}
+                        ${renderMathematicalGearsCluster()}
+                    </div>
+                    <div class="w-full bg-[#002B82] border border-blue-400/30 rounded-3xl p-4 shadow-2xl flex flex-col items-center my-auto">
+                        ${renderLogoHeader()}
+                        <div class="text-xs font-bold text-blue-200 mb-2 uppercase tracking-widest">${isMotorist ? '🚗 Motorist Access' : '🔧 Mechanic Access'}</div>
+                        <div class="w-full space-y-2.5 mb-3">
+                            <input type="text" id="username-val" placeholder="Username" value="${state.usernameInput || defaultUser}" class="w-full bg-white text-slate-900 font-bold px-4 py-2.5 rounded-full text-xs outline-none shadow-inner">
+                            <input type="password" id="password-val" placeholder="Password" value="${state.passwordInput || defaultPass}" class="w-full bg-white text-slate-900 font-bold px-4 py-2.5 rounded-full text-xs outline-none shadow-inner">
+                        </div>
+                        <button onclick="handleLoginSubmit()" class="w-full cursor-pointer transition transform active:scale-95">${renderRedCarHeader("Log in")}</button>
+                        <div class="text-[10px] text-blue-200/80 bg-blue-950/60 px-3 py-1 rounded-xl text-center mt-2 border border-blue-400/20">
+                            Preset: <strong class="text-white">${defaultUser}</strong> / <strong class="text-white">${defaultPass}</strong>
+                        </div>
+                    </div>
+                    ${renderBottomSpinningWheels()}
+                </div>
+            `;
+        }
+
+        // --- 3. REGISTRATION SCREENS ---
+        function renderMotoristReg1() {
+            return `
+                <div class="flex-1 flex flex-col p-4 bg-[#0038A8] relative h-full">
+                    <div class="flex items-center justify-between mb-3">
+                        ${renderBackButton("goToWelcome()")}
+                        <span class="bg-[#82D648] text-slate-950 font-extrabold px-3 py-1 rounded-xl text-xs shadow">Motorists Reg (1/2)</span>
+                    </div>
+                    <div class="bg-[#002B82] border border-blue-400/30 rounded-3xl p-4 shadow-2xl flex-1 flex flex-col justify-between">
+                        <div class="space-y-2.5">
+                            <input type="text" placeholder="Full Name" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                            <input type="email" placeholder="Email" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                            <input type="tel" placeholder="Mobile No." class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                            <input type="text" placeholder="Vehicle Type / Model" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                            <input type="text" placeholder="Plate No." class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                        </div>
+                        <button onclick="switchScreen('register_motorist_2')" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-full mt-3 cursor-pointer text-xs uppercase tracking-wider">Next Step ➡</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderMotoristReg2() {
+            return `
+                <div class="flex-1 flex flex-col p-4 bg-[#0038A8] relative h-full">
+                    <div class="flex items-center justify-between mb-3">
+                        ${renderBackButton("switchScreen('register_motorist_1')")}
+                        <span class="bg-[#82D648] text-slate-950 font-extrabold px-3 py-1 rounded-xl text-xs shadow">Motorists Reg (2/2)</span>
+                    </div>
+                    <div class="bg-[#002B82] border border-blue-400/30 rounded-3xl p-4 shadow-2xl flex-1 flex flex-col justify-between">
+                        <div class="space-y-2.5">
+                            <input type="text" placeholder="Choose Username" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                            <input type="password" placeholder="Password" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                            <input type="password" placeholder="Confirm Password" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center">
+                        </div>
+                        <button onclick="showModal('Complete', 'Motorist account successfully created!', '🎉'); goToWelcome();" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-full mt-3 cursor-pointer text-xs uppercase tracking-wider">Complete Sign up ✓</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Mechanic Registration 1 (Based on image_6dfb0a.png)
+        function renderMechReg1() {
+            return `
+                <div class="flex-1 flex flex-col p-4 bg-[#0038A8] relative h-full">
+                    <div class="flex items-center justify-between mb-3">
+                        ${renderBackButton("goToWelcome()")}
+                        <span class="bg-[#82D648] text-slate-950 font-extrabold px-3 py-1 rounded-xl text-xs shadow">Mechanic Step 1/2</span>
+                    </div>
+                    <div class="bg-[#002B82] border border-blue-400/30 rounded-3xl p-4 shadow-2xl flex-1 flex flex-col justify-between overflow-y-auto">
+                        <div class="space-y-2.5">
+                            <input type="text" placeholder="Full Name" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="email" placeholder="Email" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="tel" placeholder="Mobile No." class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="text" placeholder="Home Address" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <div class="relative">
+                                <input type="file" id="gov-id" class="hidden" onchange="showModal('Upload', 'Government ID attached successfully!', '📄')">
+                                <button onclick="document.getElementById('gov-id').click()" class="w-full bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm flex justify-center items-center space-x-1 cursor-pointer">
+                                    <span>🪪 Government Issued ID</span>
+                                </button>
+                            </div>
+                            <div class="relative">
+                                <input type="file" id="selfie-id" class="hidden" onchange="showModal('Upload', 'Live Selfie captured!', '📸')">
+                                <button onclick="document.getElementById('selfie-id').click()" class="w-full bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm flex justify-center items-center space-x-1 cursor-pointer">
+                                    <span>🤳 Live Selfie</span>
+                                </button>
+                            </div>
+                        </div>
+                        <button onclick="switchScreen('register_mech_2')" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-full mt-4 cursor-pointer text-xs uppercase tracking-wider shadow-lg">Next ➡</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Mechanic Registration 2 (Based on image_6dfb0a.png)
+        function renderMechReg2() {
+            return `
+                <div class="flex-1 flex flex-col p-4 bg-[#0038A8] relative h-full">
+                    <div class="flex items-center justify-between mb-3">
+                        ${renderBackButton("switchScreen('register_mech_1')")}
+                        <span class="bg-[#82D648] text-slate-950 font-extrabold px-3 py-1 rounded-xl text-xs shadow">Mechanic Step 2/2</span>
+                    </div>
+                    <div class="bg-[#002B82] border border-blue-400/30 rounded-3xl p-4 shadow-2xl flex-1 flex flex-col justify-between overflow-y-auto">
+                        <div class="space-y-2.5">
+                            <input type="text" placeholder="Username" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="password" placeholder="Password" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="password" placeholder="Confirm Password" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="text" placeholder="Specialization (e.g. Engine, Brakes)" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <div class="relative">
+                                <input type="file" id="cert-id" class="hidden" onchange="showModal('Upload', 'Certification / Clearances attached!', '📜')">
+                                <button onclick="document.getElementById('cert-id').click()" class="w-full bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm flex justify-center items-center space-x-1 cursor-pointer">
+                                    <span>📜 Certification / Clearances</span>
+                                </button>
+                            </div>
+                            <input type="text" placeholder="Service Radius (e.g. 10 km)" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                        </div>
+                        <button onclick="showModal('Sign Up', 'Mechanic Account Submitted for TESDA Verification!', '🎉'); goToWelcome();" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-full mt-4 cursor-pointer text-xs uppercase tracking-wider shadow-lg">Sign up ✓</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Bottom-Left Gear Menu for Dashboards
+        function renderBottomLeftGearMenu() {
+            return `
+                <div class="absolute bottom-4 left-4 z-30">
+                    ${state.showGearMenu ? `
+                        <div class="absolute bottom-12 left-0 bg-blue-900 border border-blue-500/50 rounded-2xl p-2 shadow-2xl space-y-1 w-36 animate-in fade-in zoom-in duration-150">
+                            <button onclick="showModal('Profile', 'Edit Profile Modal Opened', '⚙️')" class="w-full text-left px-3 py-1.5 text-xs text-white hover:bg-blue-800 rounded-lg font-medium cursor-pointer">Edit Profile</button>
+                            <button onclick="showModal('History', 'Viewing past service transactions and records...', '📜')" class="w-full text-left px-3 py-1.5 text-xs text-amber-300 hover:bg-blue-800 rounded-lg font-medium cursor-pointer">Transaction History</button>
+                        </div>
+                    ` : ''}
+                    <div onclick="toggleGearMenu()" class="w-10 h-10 cursor-pointer flex items-center justify-center hover-spin">
+                        <svg viewBox="0 0 100 100" class="w-full h-full fill-slate-300 drop-shadow">
+                            <path d="M60.5 12.5 L64 22.5 C68 24 71.5 26.5 74.5 29.5 L84 26 L91 38 L83 45.5 C83.5 48 83.5 50 83.5 52 C83.5 54 83.5 56 83 58.5 L91 66 L84 78 L74.5 74.5 C71.5 77.5 68 80 64 81.5 L60.5 91.5 L45.5 91.5 L42 81.5 C38 80 34.5 77.5 31.5 74.5 L22 78 L15 66 L23 58.5 C22.5 56 22.5 54 22.5 52 C22.5 50 22.5 48 23 45.5 L15 38 L22 26 L31.5 29.5 C34.5 26.5 38 24 42 22.5 L45.5 12.5 Z" />
+                            <circle cx="53" cy="52" r="18" fill="#0038A8" />
+                            <circle cx="53" cy="52" r="7" fill="#cbd5e1" />
+                        </svg>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleGearMenu() {
+            state.showGearMenu = !state.showGearMenu;
+            render();
+        }
+
+        // --- 4. MOTORIST DASHBOARD ---
+        function renderMotoristDashboard() {
+            let statusCard = `
+                <div class="bg-white text-slate-900 text-xs px-3 py-2 rounded-xl font-bold flex justify-between items-center shadow-inner">
+                    <span>📍 Location: ${state.locationText}</span>
+                    <button onclick="promptChangeLocation()" class="text-blue-700 hover:underline font-extrabold text-[10px] cursor-pointer">Edit</button>
+                </div>
+                <div class="bg-white text-slate-900 text-xs px-3 py-2 rounded-xl font-bold flex justify-between items-center shadow-inner">
+                    <span>🛠️ Issue: ${state.problemText}</span>
+                    <button onclick="promptChangeProblem()" class="text-blue-700 hover:underline font-extrabold text-[10px] cursor-pointer">Edit</button>
+                </div>
+            `;
+
+            let actionButton = `
+                <button onclick="triggerMotoristBooking()" class="w-full bg-red-600 hover:bg-red-500 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-xl cursor-pointer animate-pulse">
+                    BOOK A MECHANIC
+                </button>
+            `;
+
+            if (state.bookingStatus === 'searching') {
+                actionButton = `<button onclick="cancelBooking()" class="w-full bg-slate-700 text-white font-bold py-2.5 rounded-2xl text-xs cursor-pointer">Cancel Request</button>`;
+            } else if (state.bookingStatus === 'accepted') {
+                statusCard += `
+                    <div class="bg-emerald-950 border border-emerald-400 text-white p-3 rounded-2xl text-center space-y-1">
+                        <span class="text-xs text-emerald-300 font-bold block">✅ Mechanic Accepted Your Request!</span>
+                        <p class="text-[11px] text-emerald-100">${state.mechanicInfo.name} (${state.mechanicInfo.rating}) is en route.</p>
+                        <p class="text-[10px] text-emerald-200 font-mono">Estimated Arrival: 8-12 mins (${state.mechanicInfo.distance})</p>
+                    </div>
+                `;
+                actionButton = `<button onclick="showModal('Contact', 'Calling mechanic...', '📞')" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-2xl text-xs cursor-pointer">📞 Call Technician En Route</button>`;
+            }
+
+            return `
+                <div class="flex-1 flex flex-col bg-slate-950 relative h-full">
+                    <div class="bg-emerald-900 px-4 py-2.5 flex justify-between items-center border-b border-emerald-700/60">
+                        <span class="text-xs font-extrabold text-emerald-100">Motorist Client Portal</span>
+                        <button onclick="goToWelcome()" class="text-[11px] bg-red-600 text-white px-2.5 py-1 rounded-lg cursor-pointer">Logout</button>
+                    </div>
+                    <div class="flex-1 relative bg-slate-900 flex flex-col justify-between p-4 overflow-hidden">
+                        <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:18px_18px]"></div>
+                        <div class="relative z-10 my-auto flex flex-col items-center">
+                            <div class="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center animate-ping absolute"></div>
+                            <span class="text-4xl z-10">📍</span>
+                        </div>
+                        <div class="relative z-20 w-full bg-[#002266]/95 border border-blue-400/40 rounded-3xl p-4 shadow-2xl space-y-3">
+                            ${statusCard}
+                            ${actionButton}
+                        </div>
+                        ${renderBottomLeftGearMenu()}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- 5. MECHANIC DASHBOARD ---
+        function renderMechanicDashboard() {
+            let requestCard = `
+                <div class="bg-white text-slate-900 p-4 rounded-2xl shadow-xl space-y-2 border-2 border-amber-400">
+                    <span class="font-extrabold text-xs text-red-600">🚨 MOTORIST IN NEED</span>
+                    <p class="text-xs">Location: ${state.locationText}</p>
+                    <div class="flex space-x-2 pt-2">
+                        <button onclick="handleMechanicAction('decline')" class="flex-1 bg-red-600 text-white font-extrabold py-2 rounded-xl text-xs cursor-pointer">Decline</button>
+                        <button onclick="handleMechanicAction('accept')" class="flex-1 bg-emerald-600 text-white font-extrabold py-2 rounded-xl text-xs cursor-pointer">Accept</button>
+                    </div>
+                </div>
+            `;
+            if (state.bookingStatus === 'accepted') {
+                requestCard = `
+                    <div class="bg-emerald-950 text-white p-4 rounded-2xl shadow-xl space-y-3 border border-emerald-400">
+                        <div class="flex justify-between items-center">
+                            <span class="font-extrabold text-xs text-emerald-300">🟢 ACTIVE JOB IN PROGRESS</span>
+                            <span class="bg-emerald-800 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold">NAVIGATING</span>
+                        </div>
+                        <p class="text-xs text-slate-200">Dispatching to motorist at <strong>${state.locationText}</strong>.</p>
+                        <div class="bg-slate-900 p-2.5 rounded-xl border border-emerald-500/30 text-[11px] font-mono text-emerald-200">
+                            Route: Fast Path via Service Rd (1.2 km)
+                        </div>
+                        <button onclick="resetBooking()" class="w-full bg-blue-600 text-white font-extrabold py-2.5 rounded-xl text-xs cursor-pointer">Complete Service & Log Transaction ✓</button>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="flex-1 flex flex-col bg-slate-950 relative h-full">
+                    <div class="bg-amber-900 px-4 py-2.5 flex justify-between items-center border-b border-amber-700/60">
+                        <span class="text-xs font-extrabold text-amber-100">Mechanic Business Portal</span>
+                        <button onclick="goToWelcome()" class="text-[11px] bg-red-600 text-white px-2.5 py-1 rounded-lg cursor-pointer">Logout</button>
+                    </div>
+                    <div class="flex-1 relative bg-slate-900 flex flex-col justify-between p-4 overflow-hidden">
+                        <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:18px_18px]"></div>
+                        <div class="relative z-10 my-auto flex flex-col items-center">
+                            <span class="text-4xl">🔧</span>
+                        </div>
+                        <div class="relative z-20 w-full bg-[#002266]/95 border border-amber-400/40 rounded-3xl p-4 shadow-2xl space-y-3">
+                            ${requestCard}
+                        </div>
+                        ${renderBottomLeftGearMenu()}
+                    </div>
+                </div>
+            `;
+        }
+
+        function goToWelcome() { switchScreen('welcome'); }
+        function goToLogin(role) { 
+            state.loginRole = role; 
+            switchScreen('login'); 
+        }
+        function startRegister(role) { 
+            switchScreen(role === 'motorist' ? 'register_motorist_1' : 'register_mech_1'); 
+        }
+
+        function handleLoginSubmit() {
+            const u = document.getElementById('username-val').value.trim();
+            const p = document.getElementById('password-val').value.trim();
+            if (state.loginRole === 'motorist' && u === 'Group5' && p === 'TESDANC2') {
+                showModal('Login Successful!', 'Welcome back, Motorist Group5!', '🚗');
+                switchScreen('motorist_dashboard');
+            } else if (state.loginRole === 'mechanic' && u === 'Driving-Mech' && p === 'TESDANC2') {
+                showModal('Login Successful!', 'Welcome back, Mechanic Driving-Mech!', '🔧');
+                switchScreen('mechanic_dashboard');
+            } else {
+                showModal('Login Failed', 'Invalid credentials. Use Group5 / TESDANC2 or Driving-Mech / TESDANC2', '❌');
+            }
+        }
+
+        function triggerMotoristBooking() {
+            state.bookingStatus = 'searching'; render();
+            setTimeout(() => { if(state.bookingStatus === 'searching') { state.bookingStatus = 'accepted'; render(); } }, 3000);
+        }
+        function cancelBooking() { state.bookingStatus = 'idle'; render(); }
+        function handleMechanicAction(action) { state.bookingStatus = action === 'accept' ? 'accepted' : 'declined'; render(); }
+        function resetBooking() { 
+            state.bookingStatus = 'idle'; 
+            showModal('Job Completed', 'Service rendered successfully!', '🏆');
+            render(); 
+        }
+
+        function promptChangeLocation() {
+            const newLoc = prompt("Enter new location:", state.locationText);
+            if (newLoc && newLoc.trim() !== '') { state.locationText = newLoc.trim(); render(); }
+        }
+        function promptChangeProblem() {
+            const newProb = prompt("Describe vehicle issue:", state.problemText);
+            if (newProb && newProb.trim() !== '') { state.problemText = newProb.trim(); render(); }
+        }
+
+        render();
+    </script>
+</body>
+</html>
