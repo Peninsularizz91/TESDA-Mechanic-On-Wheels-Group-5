@@ -128,7 +128,7 @@
             baseFee: 250,
             perKmRate: 20,
             selectedPayment: 'GCash',
-            mechanicInfo: { name: 'Boss Tesdaman', rating: '4.9 ★', distance: '12 km away' },
+            mechanicInfo: { name: 'Lebron Tesda Santos', rating: '4.9 ★', distance: '12 km away' },
             showGearMenu: false
         };
 
@@ -467,7 +467,6 @@
 
         // --- PAYMENT DEMO SCREEN (Client Side) ---
         function renderPaymentScreen() {
-            // Formula: Base fee (first 2km = ₱250) + (10km remaining * ₱20) = ₱250 + ₱200 = ₱450
             const extraKm = state.distanceKm - 2;
             const distanceCharge = extraKm * state.perKmRate;
             const totalBill = state.baseFee + distanceCharge;
@@ -525,14 +524,15 @@
             
             showModal('Payment Successful!', `Paid ₱${totalBill}.00 via ${state.selectedPayment}.\n\n• Mechanic Share (60%): ₱${mechanicShare.toFixed(2)}\n• Platform Cut (40%): ₱${companyShare.toFixed(2)}`, '🎉');
             state.bookingStatus = 'idle';
-            switchScreen('mechanic_dashboard');
+            // FIXED: Remains in Motorist Dashboard instead of jumping to Mechanic Dashboard
+            switchScreen('motorist_dashboard'); 
         }
 
         // --- 5. MECHANIC DASHBOARD ---
         function renderMechanicDashboard() {
-            const totalBill = 450; // ₱450.00 for 12 km
-            const mechanicShare = totalBill * 0.60; // ₱270.00
-            const companyShare = totalBill * 0.40;   // ₱180.00
+            const totalBill = 450; 
+            const mechanicShare = totalBill * 0.60; 
+            const companyShare = totalBill * 0.40;   
 
             let requestCard = `
                 <div class="bg-white text-slate-900 p-4 rounded-2xl shadow-xl space-y-2 border-2 border-amber-400">
