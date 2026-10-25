@@ -122,9 +122,13 @@
             usernameInput: '',
             passwordInput: '',
             bookingStatus: 'idle',
-            locationText: 'TESDA Complex, East Service Rd, Taguig',
+            locationText: 'Alabang Hills Village, Muntinlupa',
             problemText: 'Engine overheating & flat tire',
-            mechanicInfo: { name: 'Boss Tesdaman', rating: '4.9 ★', distance: '1.2 km away' },
+            distanceKm: 12,
+            baseFee: 250,
+            perKmRate: 20,
+            selectedPayment: 'GCash',
+            mechanicInfo: { name: 'Boss Tesdaman', rating: '4.9 ★', distance: '12 km away' },
             showGearMenu: false
         };
 
@@ -146,15 +150,12 @@
         function renderMathematicalGearsCluster() {
             return `
                 <div class="relative w-36 h-36 select-none pointer-events-none">
-                    <!-- Top Right Gear (CW) -->
                     <div class="absolute top-0 right-0 w-20 h-20 gear-rotate-cw opacity-95">
                         ${gearSvgPath}
                     </div>
-                    <!-- Left Gear (CCW) -->
                     <div class="absolute top-6 left-0 w-16 h-16 gear-rotate-ccw opacity-95">
                         ${gearSvgPath}
                     </div>
-                    <!-- Bottom Center Gear (CW) -->
                     <div class="absolute bottom-0 right-4 w-18 h-18 gear-rotate-cw opacity-95">
                         ${gearSvgPath}
                     </div>
@@ -162,7 +163,6 @@
             `;
         }
 
-        // Custom Logo Header with fallback
         function renderLogoHeader() {
             return `
                 <div class="w-full flex justify-center items-center my-2 select-none px-4">
@@ -171,7 +171,6 @@
             `;
         }
 
-        // Red Car Header Graphic
         function renderRedCarHeader(titleText) {
             return `
                 <div class="relative flex items-center justify-center my-2 select-none w-full">
@@ -186,7 +185,6 @@
             `;
         }
 
-        // Spinning Reference Wheels at Bottom
         function renderBottomSpinningWheels() {
             return `
                 <div class="mt-auto pt-2 pb-3 flex justify-between px-10 w-full select-none">
@@ -224,6 +222,7 @@
                 case 'register_mech_1': root.innerHTML = renderMechReg1(); break;
                 case 'register_mech_2': root.innerHTML = renderMechReg2(); break;
                 case 'motorist_dashboard': root.innerHTML = renderMotoristDashboard(); break;
+                case 'payment_screen': root.innerHTML = renderPaymentScreen(); break;
                 case 'mechanic_dashboard': root.innerHTML = renderMechanicDashboard(); break;
             }
         }
@@ -326,7 +325,6 @@
             `;
         }
 
-        // Mechanic Registration 1 (Based on image_6dfb0a.png)
         function renderMechReg1() {
             return `
                 <div class="flex-1 flex flex-col p-4 bg-[#0038A8] relative h-full">
@@ -359,7 +357,6 @@
             `;
         }
 
-        // Mechanic Registration 2 (Based on image_6dfb0a.png)
         function renderMechReg2() {
             return `
                 <div class="flex-1 flex flex-col p-4 bg-[#0038A8] relative h-full">
@@ -376,10 +373,10 @@
                             <div class="relative">
                                 <input type="file" id="cert-id" class="hidden" onchange="showModal('Upload', 'Certification / Clearances attached!', '📜')">
                                 <button onclick="document.getElementById('cert-id').click()" class="w-full bg-white hover:bg-slate-100 text-slate-700 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm flex justify-center items-center space-x-1 cursor-pointer">
-                                    <span>📜 Certification / Clearances</span>
+                                    <span>📜 TESDA NC II & Driving Cert</span>
                                 </button>
                             </div>
-                            <input type="text" placeholder="Service Radius (e.g. 10 km)" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
+                            <input type="text" placeholder="Service Radius (e.g. 15 km)" class="w-full bg-white text-slate-900 font-medium px-4 py-2.5 rounded-full text-xs outline-none text-center shadow-sm">
                         </div>
                         <button onclick="showModal('Sign Up', 'Mechanic Account Submitted for TESDA Verification!', '🎉'); goToWelcome();" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3 rounded-full mt-4 cursor-pointer text-xs uppercase tracking-wider shadow-lg">Sign up ✓</button>
                     </div>
@@ -428,7 +425,7 @@
 
             let actionButton = `
                 <button onclick="triggerMotoristBooking()" class="w-full bg-red-600 hover:bg-red-500 text-white font-extrabold py-3.5 px-4 rounded-2xl shadow-xl cursor-pointer animate-pulse">
-                    BOOK A MECHANIC
+                    BOOK A MECHANIC (12 km Dispatches)
                 </button>
             `;
 
@@ -438,11 +435,11 @@
                 statusCard += `
                     <div class="bg-emerald-950 border border-emerald-400 text-white p-3 rounded-2xl text-center space-y-1">
                         <span class="text-xs text-emerald-300 font-bold block">✅ Mechanic Accepted Your Request!</span>
-                        <p class="text-[11px] text-emerald-100">${state.mechanicInfo.name} (${state.mechanicInfo.rating}) is en route.</p>
-                        <p class="text-[10px] text-emerald-200 font-mono">Estimated Arrival: 8-12 mins (${state.mechanicInfo.distance})</p>
+                        <p class="text-[11px] text-emerald-100">${state.mechanicInfo.name} (${state.mechanicInfo.rating}) is en route from TESDA NCR.</p>
+                        <p class="text-[10px] text-emerald-200 font-mono">Distance: ${state.distanceKm} km | Estimated Arrival: 15-20 mins</p>
                     </div>
                 `;
-                actionButton = `<button onclick="showModal('Contact', 'Calling mechanic...', '📞')" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-2xl text-xs cursor-pointer">📞 Call Technician En Route</button>`;
+                actionButton = `<button onclick="switchScreen('payment_screen')" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-2xl text-xs cursor-pointer shadow-lg animate-bounce">💳 Proceed to Payment Demo</button>`;
             }
 
             return `
@@ -455,7 +452,8 @@
                         <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:18px_18px]"></div>
                         <div class="relative z-10 my-auto flex flex-col items-center">
                             <div class="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center animate-ping absolute"></div>
-                            <span class="text-4xl z-10">📍</span>
+                            <span class="text-4xl z-10">🚗📍</span>
+                            <span class="text-[11px] text-emerald-300 mt-2 font-mono">Alabang Hills → TESDA (12 km)</span>
                         </div>
                         <div class="relative z-20 w-full bg-[#002266]/95 border border-blue-400/40 rounded-3xl p-4 shadow-2xl space-y-3">
                             ${statusCard}
@@ -467,30 +465,114 @@
             `;
         }
 
+        // --- PAYMENT DEMO SCREEN (Client Side) ---
+        function renderPaymentScreen() {
+            // Formula: Base fee (first 2km = ₱250) + (10km remaining * ₱20) = ₱250 + ₱200 = ₱450
+            const extraKm = state.distanceKm - 2;
+            const distanceCharge = extraKm * state.perKmRate;
+            const totalBill = state.baseFee + distanceCharge;
+
+            return `
+                <div class="flex-1 flex flex-col bg-slate-950 relative h-full">
+                    <div class="bg-blue-900 px-4 py-2.5 flex justify-between items-center border-b border-blue-700/60">
+                        <span class="text-xs font-extrabold text-white">💳 Secure Payment Checkout</span>
+                        <button onclick="switchScreen('motorist_dashboard')" class="text-[11px] bg-slate-700 text-white px-2 py-0.5 rounded cursor-pointer">Back</button>
+                    </div>
+                    <div class="flex-1 bg-slate-900 p-4 flex flex-col justify-between overflow-y-auto">
+                        <div class="space-y-3">
+                            <div class="bg-[#002266] border border-blue-400/30 rounded-2xl p-3 text-xs space-y-2">
+                                <span class="font-extrabold text-amber-300 block">📊 Distance-Based Pricing (12 km)</span>
+                                <div class="flex justify-between text-slate-200">
+                                    <span>Base Call-out Fee (First 2 km):</span>
+                                    <span class="font-bold">₱${state.baseFee}.00</span>
+                                </div>
+                                <div class="flex justify-between text-slate-200">
+                                    <span>Distance Surcharge (${extraKm} km @ ₱${state.perKmRate}/km):</span>
+                                    <span class="font-bold">₱${distanceCharge}.00</span>
+                                </div>
+                                <div class="border-t border-blue-400/30 pt-1.5 flex justify-between text-white font-extrabold text-sm">
+                                    <span>Total Service Fee:</span>
+                                    <span class="text-emerald-400">₱${totalBill}.00</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-[#002266] border border-blue-400/30 rounded-2xl p-3 text-xs space-y-2">
+                                <span class="font-extrabold text-white block mb-1">Select Online Payment Method:</span>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <button onclick="setPaymentMethod('GCash')" class="p-2 rounded-xl border ${state.selectedPayment === 'GCash' ? 'border-emerald-400 bg-emerald-950 text-white font-bold' : 'border-blue-400/30 bg-slate-800 text-slate-300'} cursor-pointer text-center text-[11px]">GCash</button>
+                                    <button onclick="setPaymentMethod('Maya')" class="p-2 rounded-xl border ${state.selectedPayment === 'Maya' ? 'border-emerald-400 bg-emerald-950 text-white font-bold' : 'border-blue-400/30 bg-slate-800 text-slate-300'} cursor-pointer text-center text-[11px]">Maya</button>
+                                    <button onclick="setPaymentMethod('Card')" class="p-2 rounded-xl border ${state.selectedPayment === 'Card' ? 'border-emerald-400 bg-emerald-950 text-white font-bold' : 'border-blue-400/30 bg-slate-800 text-slate-300'} cursor-pointer text-center text-[11px]">Card</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="completeClientPayment(${totalBill})" class="w-full bg-[#82D648] hover:bg-emerald-400 text-slate-950 font-extrabold py-3.5 rounded-2xl shadow-xl cursor-pointer text-xs uppercase tracking-wider mt-4">
+                            Pay ₱${totalBill}.00 via ${state.selectedPayment} ✓
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function setPaymentMethod(method) {
+            state.selectedPayment = method;
+            render();
+        }
+
+        function completeClientPayment(totalBill) {
+            const mechanicShare = totalBill * 0.60;
+            const companyShare = totalBill * 0.40;
+            
+            showModal('Payment Successful!', `Paid ₱${totalBill}.00 via ${state.selectedPayment}.\n\n• Mechanic Share (60%): ₱${mechanicShare.toFixed(2)}\n• Platform Cut (40%): ₱${companyShare.toFixed(2)}`, '🎉');
+            state.bookingStatus = 'idle';
+            switchScreen('mechanic_dashboard');
+        }
+
         // --- 5. MECHANIC DASHBOARD ---
         function renderMechanicDashboard() {
+            const totalBill = 450; // ₱450.00 for 12 km
+            const mechanicShare = totalBill * 0.60; // ₱270.00
+            const companyShare = totalBill * 0.40;   // ₱180.00
+
             let requestCard = `
                 <div class="bg-white text-slate-900 p-4 rounded-2xl shadow-xl space-y-2 border-2 border-amber-400">
-                    <span class="font-extrabold text-xs text-red-600">🚨 MOTORIST IN NEED</span>
+                    <span class="font-extrabold text-xs text-red-600">🚨 MOTORIST IN NEED (12 km Away)</span>
                     <p class="text-xs">Location: ${state.locationText}</p>
+                    <p class="text-[11px] text-slate-600 font-medium">Estimated Job Value: <strong>₱${totalBill}.00</strong></p>
                     <div class="flex space-x-2 pt-2">
                         <button onclick="handleMechanicAction('decline')" class="flex-1 bg-red-600 text-white font-extrabold py-2 rounded-xl text-xs cursor-pointer">Decline</button>
                         <button onclick="handleMechanicAction('accept')" class="flex-1 bg-emerald-600 text-white font-extrabold py-2 rounded-xl text-xs cursor-pointer">Accept</button>
                     </div>
                 </div>
             `;
+
             if (state.bookingStatus === 'accepted') {
                 requestCard = `
                     <div class="bg-emerald-950 text-white p-4 rounded-2xl shadow-xl space-y-3 border border-emerald-400">
                         <div class="flex justify-between items-center">
-                            <span class="font-extrabold text-xs text-emerald-300">🟢 ACTIVE JOB IN PROGRESS</span>
-                            <span class="bg-emerald-800 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold">NAVIGATING</span>
+                            <span class="font-extrabold text-xs text-emerald-300">🟢 ACTIVE JOB TRANSPARENCY DASHBOARD</span>
+                            <span class="bg-emerald-800 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full font-bold">ESCROW</span>
                         </div>
-                        <p class="text-xs text-slate-200">Dispatching to motorist at <strong>${state.locationText}</strong>.</p>
-                        <div class="bg-slate-900 p-2.5 rounded-xl border border-emerald-500/30 text-[11px] font-mono text-emerald-200">
-                            Route: Fast Path via Service Rd (1.2 km)
+                        <p class="text-xs text-slate-200">Client from <strong>Alabang Hills</strong> dispatched (12 km route).</p>
+                        
+                        <!-- Revenue Transparency Box for Mechanic -->
+                        <div class="bg-slate-900 p-3 rounded-xl border border-amber-400/50 space-y-1.5 text-xs">
+                            <span class="text-amber-400 font-extrabold block text-[11px]">💰 Transparent Revenue Split (60/40)</span>
+                            <div class="flex justify-between text-slate-300">
+                                <span>Gross Service Total:</span>
+                                <span class="font-bold">₱${totalBill}.00</span>
+                            </div>
+                            <div class="flex justify-between text-emerald-400 font-bold">
+                                <span>Your Payout (60% Direct Wallet):</span>
+                                <span>₱${mechanicShare.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between text-blue-300 text-[11px]">
+                                <span>Company Cut (40% Platform OPEX):</span>
+                                <span>₱${companyShare.toFixed(2)}</span>
+                            </div>
                         </div>
-                        <button onclick="resetBooking()" class="w-full bg-blue-600 text-white font-extrabold py-2.5 rounded-xl text-xs cursor-pointer">Complete Service & Log Transaction ✓</button>
+
+                        <button onclick="resetBooking()" class="w-full bg-[#FF8C38] hover:bg-amber-500 text-slate-950 font-extrabold py-3 rounded-xl text-xs cursor-pointer shadow-lg">Complete Job & Credit Wallet ✓</button>
                     </div>
                 `;
             }
@@ -504,7 +586,8 @@
                     <div class="flex-1 relative bg-slate-900 flex flex-col justify-between p-4 overflow-hidden">
                         <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:18px_18px]"></div>
                         <div class="relative z-10 my-auto flex flex-col items-center">
-                            <span class="text-4xl">🔧</span>
+                            <span class="text-4xl">🔧📱</span>
+                            <span class="text-[11px] text-amber-300 mt-2 font-mono">Live Earnings & Transparency View</span>
                         </div>
                         <div class="relative z-20 w-full bg-[#002266]/95 border border-amber-400/40 rounded-3xl p-4 shadow-2xl space-y-3">
                             ${requestCard}
@@ -540,13 +623,13 @@
 
         function triggerMotoristBooking() {
             state.bookingStatus = 'searching'; render();
-            setTimeout(() => { if(state.bookingStatus === 'searching') { state.bookingStatus = 'accepted'; render(); } }, 3000);
+            setTimeout(() => { if(state.bookingStatus === 'searching') { state.bookingStatus = 'accepted'; render(); } }, 2500);
         }
         function cancelBooking() { state.bookingStatus = 'idle'; render(); }
         function handleMechanicAction(action) { state.bookingStatus = action === 'accept' ? 'accepted' : 'declined'; render(); }
         function resetBooking() { 
             state.bookingStatus = 'idle'; 
-            showModal('Job Completed', 'Service rendered successfully!', '🏆');
+            showModal('Job Completed & Credited!', '₱270.00 instantly credited to your mechanic digital wallet (60% split).', '🏆');
             render(); 
         }
 
